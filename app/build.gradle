@@ -1,0 +1,39 @@
+apply plugin: 'android'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "19.0.1"
+
+    defaultConfig {
+        minSdkVersion 17
+        targetSdkVersion 19
+    }
+
+    signingConfigs {
+        release {
+            def Properties localProps = new Properties()
+            localProps.load(new FileInputStream(file('../local.properties')))
+            def Properties keyProps = new Properties()
+            assert localProps['keystore.props.file'];
+            keyProps.load(new FileInputStream(file(localProps['keystore.props.file'])))
+            storeFile file(keyProps["store"])
+            keyAlias keyProps["alias"]
+            storePassword keyProps["storePass"]
+            keyPassword keyProps["pass"]
+        }
+    }
+
+    buildTypes {
+        release {
+            runProguard false
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.google.android.gms:play-services:4.3.23'
+    compile 'com.google.android.apps.muzei:muzei-api:+'
+    compile 'com.squareup.retrofit:retrofit:1.5.0'
+}
