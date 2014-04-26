@@ -8,8 +8,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
 
-import com.google.android.gms.analytics.HitBuilders.EventBuilder;
-
 public class CactusActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {

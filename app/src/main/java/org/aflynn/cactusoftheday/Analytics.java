@@ -26,6 +26,7 @@ public final class Analytics {
     public static final String LABEL_SINGLE_CACTUS = "single_cactus";
     public static final String LABEL_RANDOM_CACTUS = "single_cactus";
     public static final String LABEL_NULL_RESPONSE = "null_response";
+    public static final String LABEL_NETWORK = "network";
 
     private static final Object sLock = new Object();
     private static volatile Tracker sTracker = null;

@@ -12,20 +12,15 @@ import com.google.gson.GsonBuilder;
 import org.aflynn.cactusoftheday.CactusService.CactusPhoto;
 import org.aflynn.cactusoftheday.CactusService.CactusResponse;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
 import retrofit.RestAdapter;
+import retrofit.RetrofitError;
 import retrofit.converter.GsonConverter;
 
 public class CactusArtSource extends RemoteMuzeiArtSource {
-    private static final SimpleDateFormat FORMAT =
-            new SimpleDateFormat("MMMM d yyyy"); // January 31 2014
     private static final Random RANDOM = new Random();
-    private static final int PAGINATION = 500;
-    private static final long CHECK_INTERVAL_MILLIS = 1 * 60 * 60 * 1000L; // 1 hr
-    private static final int CACTUS_OF_THE_DAY_WINDOW_SECS = 48 * 60 * 60; // 48 hrs
 
     public CactusArtSource() {
         super(CactusArtSource.class.getSimpleName());
@@ -56,16 +51,23 @@ public class CactusArtSource extends RemoteMuzeiArtSource {
                 .build();
         CactusService cactusService = restAdapter.create(CactusService.class);
 
-        if (!tryCactusOfTheDay(cactusService)) {
-            randomCactus(cactusService);
+        try {
+            if (!tryCactusOfTheDay(cactusService)) {
+                randomCactus(cactusService);
+            }
+        } catch (RetrofitError e) {
+            Log.w(Config.LOG_TAG, "Retrofit error while calling CactusOfTheDay");
+            Analytics.track(this, Analytics.CATEGORY_AUTO, Analytics.ACTION_ERROR,
+                    Analytics.LABEL_NETWORK);
+            // Continue through to reschedule an update
         }
 
-        scheduleUpdate(System.currentTimeMillis() + CHECK_INTERVAL_MILLIS);
+        scheduleUpdate(System.currentTimeMillis() + Config.CHECK_INTERVAL_MILLIS);
     }
 
     private boolean tryCactusOfTheDay(CactusService cactusService) throws RetryException {
         long fortyEightHoursAgoSecs =
-                (System.currentTimeMillis() / 1000) - CACTUS_OF_THE_DAY_WINDOW_SECS;
+                (System.currentTimeMillis() / 1000) - Config.CACTUS_OF_THE_DAY_DISPLAY_WINDOW_SECS;
         CactusResponse cactusResponse = cactusService.getPhotos(
                 fortyEightHoursAgoSecs /* minUploadDate */, 1 /* perPage */, 1 /* page */);
         Analytics.track(this, Analytics.CATEGORY_AUTO, Analytics.ACTION_RPC,
@@ -98,7 +100,7 @@ public class CactusArtSource extends RemoteMuzeiArtSource {
         }
 
         CactusResponse cactusResponse = cactusService.getPhotos(null /* minUploadDate */,
-                PAGINATION /* perPage */, 1 /* page */);
+                Config.RANDOM_CACTUS_PAGINATION /* perPage */, 1 /* page */);
         Analytics.track(this, Analytics.CATEGORY_AUTO, Analytics.ACTION_RPC,
                 Analytics.LABEL_RANDOM_CACTUS, 1 /* value == page number */);
 
@@ -110,19 +112,30 @@ public class CactusArtSource extends RemoteMuzeiArtSource {
         }
 
         int totalNumberOfPics = cactusResponse.photos.total;
-        int randomPicNumber = RANDOM.nextInt(totalNumberOfPics - 1);
-        randomPicNumber++; // Choose random + 1 so we don't pick the most recent COTD
+        if (totalNumberOfPics <= 0) {
+            Log.w(Config.LOG_TAG, "No cacti exist in the account. Not showing anything.");
+            // TODO: Show a bundled or static picture
+            return;
+        }
+
+        int randomPicNumber;
+        if (totalNumberOfPics == 1) {
+            randomPicNumber = 0;
+        } else {
+            randomPicNumber = RANDOM.nextInt(totalNumberOfPics - 1);
+            randomPicNumber++; // Choose random + 1 so we don't pick the most recent COTD
+        }
 
         // If we need to look at a second page
-        if (randomPicNumber >= PAGINATION) {
+        if (randomPicNumber >= Config.RANDOM_CACTUS_PAGINATION) {
             int pageNumber = 1;
-            while (randomPicNumber >= PAGINATION) {
+            while (randomPicNumber >= Config.RANDOM_CACTUS_PAGINATION) {
                 pageNumber++;
-                randomPicNumber -= PAGINATION;
+                randomPicNumber -= Config.RANDOM_CACTUS_PAGINATION;
             }
 
             cactusResponse = cactusService.getPhotos(null /* minUploadDate */,
-                    PAGINATION /* perPage */, pageNumber /* page */);
+                    Config.RANDOM_CACTUS_PAGINATION /* perPage */, pageNumber /* page */);
             Analytics.track(this, Analytics.CATEGORY_AUTO, Analytics.ACTION_RPC,
                     Analytics.LABEL_RANDOM_CACTUS, pageNumber /* value == page number */);
 
@@ -148,7 +161,7 @@ public class CactusArtSource extends RemoteMuzeiArtSource {
             publishArtwork(new Artwork.Builder()
                     .token(photo.id)
                     .title(photo.title)
-                    .byline(FORMAT.format(photo.dateupload))
+                    .byline(Config.DESCRIPTION_DATE_FORMAT.format(photo.dateupload))
                     .imageUri(Uri.parse(photo.getPhotoUrl()))
                     .viewIntent(new Intent(Intent.ACTION_VIEW, Uri.parse(pageUrl)))
                     .build());

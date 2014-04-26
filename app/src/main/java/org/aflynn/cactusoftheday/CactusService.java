@@ -29,18 +29,17 @@ interface CactusService {
         int farm;
         String server;
         String secret;
-        Date datetaken; // yyyy-MM-dd HH:mm:ss
         Date dateupload; // unix time
 
         // http://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}_b.jpg
         public String getPhotoUrl() {
-            return new String("http://farm" + farm + ".staticflickr.com/" + server + "/" + id + "_"
-                    + secret + "_b.jpg");
+            return "http://farm" + farm + ".staticflickr.com/" + server + "/" + id + "_" + secret
+                    + "_b.jpg";
         }
 
         // http://www.flickr.com/photos/{user-id}/{photo-id} - individual photo
         public String getPageUrl() {
-            return new String("http://www.flickr.com/photos/" + Config.NSID + "/" + id);
+            return "http://www.flickr.com/photos/" + Config.NSID + "/" + id;
         }
     }
 }

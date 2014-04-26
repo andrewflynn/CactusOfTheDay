@@ -7,14 +7,13 @@ public final class CactusPreference {
     private static final String PREFS_FILE = "prefs";
     private static final String KEY_RANDOM_CHOSEN_TIME_MILLIS = "random_chosen_time_millis";
 
-    private static final long RANDOM_WINDOW_MILLIS = 24 * 60 * 60 * 1000L; // 24 hrs
-
     private CactusPreference() {}
 
     public static boolean checkRandomWindow(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         long randomChosenTimeMillis = prefs.getLong(KEY_RANDOM_CHOSEN_TIME_MILLIS, 0L);
-        return System.currentTimeMillis() - randomChosenTimeMillis > RANDOM_WINDOW_MILLIS;
+        return System.currentTimeMillis() - randomChosenTimeMillis >
+                Config.RANDOM_CACTUS_DISPLAY_WINDOW_MILLIS;
     }
 
     public static void clearRandomWindow(Context context) {
